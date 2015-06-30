@@ -1,0 +1,13 @@
+Total sites: 64.0
+0/1
+Splitting the graph using mode =  simple
+numSites:
+[20 13 13 18]
+neighCount:
+[2, 3, 3, 2]
+commSurf:
+[110 177 181 106]
+numEdges:
+[175 208 213 159]
+totalWeight:
+[320, 160, 160, 288]

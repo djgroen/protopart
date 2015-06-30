@@ -1,0 +1,16 @@
+TODO List:
+
+Essential:
+- Develop a C wrapper that writes CSR files.
+- Develop Python code that reads CSR files.
+- Develop Python code that converts CSR to Domain objects.
+
+Important:
+- Develop a C wrapper that reads CSR files.
+- Develop Python code that writes CSR files.
+- Develop Python code that converts Domain to CSR objects.
+- Write more unit tests
+
+Useful:
+- Refactor the library.
+- Start on a configuration file format.
