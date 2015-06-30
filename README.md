@@ -10,3 +10,8 @@ All the major scripts are in the Python directory.
 * hgb2hga.py - converts hgb to hga format
 * hgb2mapping.py - converts hgb format to a mapping .txt file (which is a subset of the HGA format, and used for HemeLB).
 * protopart.py - library to do basic domain decomposition.
+
+## Test facilities.
+
+* unit tests can be performed by typing 'nosetests'
+* functional tests can be performed by executing f.sh in the Python directory.
