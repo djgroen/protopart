@@ -49,6 +49,8 @@ def test_WriteCBin():
     d = io.ReadDomain("unittest_data/four_cube.gmy")
     io.writeForCBin(d, "unittest_data/four_cube.hgb")
 
+# Unittest below is commented out because it takes a very long time to run...
+"""
 def test_WriteCBinBif():
     import cProfile, pstats, StringIO
     pr = cProfile.Profile()
@@ -61,9 +63,15 @@ def test_WriteCBinBif():
     ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
     ps.print_stats()
     print s.getvalue()
-
+"""
 
 def test_ReadAndWriteCBin():
     d = io.readForCBin("unittest_data/four_cube.hgb")
     io.writeForCBin(d, "unittest_data/four_cube2.hgb")
     assert_true(filecmp.cmp("unittest_data/four_cube.hgb", "unittest_data/four_cube2.hgb"))
+
+
+def test_ReadAndWriteStats():
+    d = io.readForCBin("unittest_data/four_cube.hgb")
+    stats_file = open("unittest_data/four_cube.stats",'wb')
+    d.writeStats(stats_file)
