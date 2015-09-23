@@ -63,6 +63,49 @@ def writeHGA(d, path):
             s += str(d.dictIdx[j]) + ' '
         s += '\n'
         f.write(s)
+
+def readHGA(path):
+    """
+    Writes a file for c++ to parse in ASCII format, provided a path
+    Core ID - Coordinates - SiteTypeNum - Edges - \n
+    """
+    print "Reading HGA file at: ", path
+
+    d = domain.Domain()
+
+    f = open(path,'r')
+ 
+    #lines = f.readlines()
+
+    lineCount = 0
+    for line in f:
+       s = (line.strip()).split()
+       v = domain.Vertex()
+       v.coreNum = int(s[0])
+       v.coordinates = np.array([int(s[1]), int(s[2]), int(s[3])])
+       v.siteType = int(s[4])
+       for i in xrange(5, len(s)):
+           v.edges.append(int(s[i]))
+       lineCount += 1
+       d.vertices.append(v)
+
+    return d
+"""
+    for i in d.vertices:
+        s = str(i.coreNum) + ' ' + str(i.coordinates[0]) + ' '
+        s += str(i.coordinates[1]) + ' ' + str(i.coordinates[2]) + ' '
+        s += str(i.siteType) + ' '
+
+        for j in i.biEdges:
+            x = d.dictIdx.get(j,-1)
+            if (x == -1): continue
+            s += str(d.dictIdx[j]) + ' '
+        s += '\n'
+        f.write(s)
+
+    d.updateProperties()
+    return d
+"""
         
 def writeMapping(d, path):
     """
@@ -165,6 +208,7 @@ def readForCBin(path):
 
  
     vertex_iter = 0
+
     # 3. Vertex data 
     for i in d.vertices:
         # x = struct.pack('i',i.vertexID)
@@ -194,6 +238,9 @@ def readForCBin(path):
             # x = struct.pack('i',v.dictIdx[j])
         # print "read: ", i.vertexID, i.coreNum, i.coordinates, i.siteType, i.biEdges
         vertex_iter += 1
+
+    d.updateProperties()
+
     return d
 
 def fix_xadj(v):

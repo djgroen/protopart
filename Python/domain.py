@@ -399,39 +399,70 @@ class Domain:
                 x = x + ']\n' 
             
             wo.write(x)
-     
-    def _getInfo(self):
-        """
-        Calculates relevant parameters for subgraph division
-        """
+    
+    def updateProperties(self):
+        
+        for v in self.vertices:
+            if v.coreNum > self.numGraphs:
+                 self.numGraphs = v.coreNum
+
+        self.numGraphs += 1
+
         self.numSites = np.zeros(self.numGraphs, dtype=np.uint)
         self.neighCount = []                
         self.commSurf = np.zeros(self.numGraphs, dtype=np.uint)
         self.numEdges = np.zeros(self.numGraphs, dtype=np.uint)
-         
+ 
+    def _getInfo(self):
+        """
+        Calculates relevant parameters for subgraph division
+        """
+        self.updateProperties()        
+ 
         w = {i:[] for i in xrange(0,self.numGraphs)}
 
         #GMY
         #if (isinstance(self.vertices[0],VertexGmy)):    
         self.totalWeight = [0 for i in list(xrange(0,self.numGraphs))]
         for i in self.vertices:
+            if i.coreNum<0 or i.coreNum>self.numGraphs:
+                print "Error: coreNum read in is:",i.coreNum
+                sys.exit()
+
             self.numSites[i.coreNum] += 1
             self.totalWeight[i.coreNum] += siteTypeWeight[i.siteType]
-            for j in i.biEdges:
-                x = self.dictIdx.get(j,-1)
-                if (x == -1): #Out of Bounds
-                    continue
-                p = self.vertices[x] 
             
-                if ( (p.coreNum != i.coreNum) 
-                       or (j > i.vertexID 
-                       and p.coreNum == i.coreNum)):    
-                   self.numEdges[i.coreNum] += 1
+            edges = i.edges
+            if (isinstance(self.vertices[0],VertexGmy)):    
+                edges = i.biEdges
+                for j in edges:
+                    x = self.dictIdx.get(j,-1)
+                    if (x == -1): #Out of Bounds
+                        continue
+                    p = self.vertices[x] 
+            
+                    if ( (p.coreNum != i.coreNum) 
+                           or (j > i.vertexID 
+                           and p.coreNum == i.coreNum)):    
+                        self.numEdges[i.coreNum] += 1
                     
-                if (p.coreNum != i.coreNum):
-                    w[i.coreNum].append(p.coreNum)
-                    self.commSurf[i.coreNum] += 1
-                
+                    if (p.coreNum != i.coreNum):
+                        w[i.coreNum].append(p.coreNum)
+                        self.commSurf[i.coreNum] += 1
+            else:
+                for j in edges:
+                    if (j == -1): #Out of Bounds
+                        continue
+                    p = self.vertices[j]
+
+                    if(p.coreNum == i.coreNum):
+                        if j > i.vertexID:
+                            self.numEdges[i.coreNum] += 1
+                    else:
+                        self.numEdges[i.coreNum] += 1
+                        w[i.coreNum].append(p.coreNum)
+                        self.commSurf[i.coreNum] += 1
+   
                     
         for i in w:
             self.neighCount.append(len(set(w[i])))
@@ -460,7 +491,7 @@ class Domain:
         if (Avg != 0):
             f.write( '        Max/Avg: ' + str(float(maxx)/Avg) + '\n')
 
-    def writeBlock(a):
+    def writeBlock(self, a):
         summ = 0
         maxx = -1
         minn = a[0]
@@ -469,7 +500,7 @@ class Domain:
             maxx = max(maxx,i)
             minn = min(minn,i)
         Avg = float(summ)/len(a)
-        self.writeVals(f, Avg, maxx, minn)
+        self.writeVals(sys.stdout, Avg, maxx, minn)
 
     def writeStats(self,f):
         """
@@ -480,19 +511,19 @@ class Domain:
         f.write( 'Number of Partitions: ' + str(self.numGraphs) + '\n')
         f.write( '--------------------------------------------\n')
         f.write( ' Number of Sites\n')
-        writeBlock(self.numSites)
+        self.writeBlock(self.numSites)
         
         f.write( ' Neighbour Count\n')
-        writeBlock(self.neighCount)        
+        self.writeBlock(self.neighCount)        
  
         f.write( ' Communication Surface\n')
-        writeBlock(self.commSurf)       
+        self.writeBlock(self.commSurf)       
  
         f.write( ' Number of Edges\n')
-        writeBlock(self.numEdges)       
+        self.writeBlock(self.numEdges)       
         
         if (isinstance(self.vertices[0],VertexGmy)):
             f.write( ' Total Weight\n')
-            writeBlock(self.totalWeight)     
+            self.writeBlock(self.totalWeight)     
             
         f.write( '--------------------------------------------\n')
