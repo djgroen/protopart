@@ -325,6 +325,49 @@ def writeForCBin(d, path):
         # print "writing: ", d.dictIdx[i.vertexID], i.coreNum, i.coordinates, i.siteType, b
 
 
+def populateBlockList(v, d):
+"""
+Creates a mapping list from blocknumber to corenumber.
+"""
+    entries = []
+
+    #read halo- blocks on domain edges
+    if (i.coordinates[0]%d.numLatticeSites == 0): #Lower x-edge
+        xRange = [-1,0]
+    elif (i.coordinates[0]%d.numLatticeSites == 7): #Upper x-edge
+        xRange = [0,1]
+    else:
+        xRange = [0]
+
+    if (i.coordinates[1]%d.numLatticeSites == 0): #Lower x-edge
+        yRange = [-1,0]
+    elif (i.coordinates[1]%d.numLatticeSites == 7): #Upper x-edge
+        yRange = [0,1]
+    else:
+        yRange = [0]
+
+    if (i.coordinates[2]%d.numLatticeSites == 0): #Lower x-edge
+        zRange = [-1,0]
+    elif (i.coordinates[2]%d.numLatticeSites == 7): #Upper x-edge
+        zRange = [0,1]
+    else:
+        zRange = [0]
+
+    blockcoord = [0.0,0.0,0.0]
+    for dx in xRange:
+      for dy in yRange:
+        for dz in zRange:
+          blockcoord[0] = math.floor((i.coordinates[0]+dx)/d.numLatticeSites)
+          blockcoord[1] = math.floor((i.coordinates[1]+dy)/d.numLatticeSites)
+          blockcoord[2] = math.floor((i.coordinates[2]+dz)/d.numLatticeSites)
+          blockid=int((blockcoord[0]*d.blockSize[1]+blockcoord[1])*d.blockSize[2]+blockcoord[2])
+
+          key = (i.coreNum,blockid)
+          if key not in entries:
+            entries.append(key)
+
+
+
 def writeForCBinX35_987(d, path):
     
     # X35_987 is the XDR version of the output
@@ -334,7 +377,6 @@ def writeForCBinX35_987(d, path):
     Core ID - Coordinates - SiteTypeNum - Edges - -1
     """
     f = open(path,'wb')
-    entries = []
 
     p = xdrlib.Packer()
 
@@ -347,41 +389,7 @@ def writeForCBinX35_987(d, path):
 
     # 3. Vertex data 
     for i in d.vertices:
-
-# Read halo- blocks on domain edges
-      if (i.coordinates[0]%d.numLatticeSites == 0): #Lower x-edge
-        xRange = [-1,0]
-      elif (i.coordinates[0]%d.numLatticeSites == 7): #Upper x-edge
-        xRange = [0,1]
-      else:
-        xRange = [0]
-
-      if (i.coordinates[1]%d.numLatticeSites == 0): #Lower x-edge
-        yRange = [-1,0]
-      elif (i.coordinates[1]%d.numLatticeSites == 7): #Upper x-edge
-        yRange = [0,1]
-      else:
-        yRange = [0]
-
-      if (i.coordinates[2]%d.numLatticeSites == 0): #Lower x-edge
-        zRange = [-1,0]
-      elif (i.coordinates[2]%d.numLatticeSites == 7): #Upper x-edge
-        zRange = [0,1]
-      else:
-        zRange = [0]
-
-
-      for dx in xRange:
-        for dy in yRange:
-          for dz in zRange:
-            blockcoord[0] = math.floor((i.coordinates[0]+dx)/d.numLatticeSites)
-            blockcoord[1] = math.floor((i.coordinates[1]+dy)/d.numLatticeSites)
-            blockcoord[2] = math.floor((i.coordinates[2]+dz)/d.numLatticeSites)
-            blockid=int((blockcoord[0]*d.blockSize[1]+blockcoord[1])*d.blockSize[2]+blockcoord[2])
-
-            key = (i.coreNum,blockid)
-            if key not in entries:
-                entries.append(key)
+      entries = populateBlockList(i, d)
 
     for i in d.vertices:
       blockcoord[0] = math.floor((i.coordinates[0])/d.numLatticeSites)
