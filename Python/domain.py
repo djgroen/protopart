@@ -161,6 +161,16 @@ class Domain:
             #self.blockStarts[i] = self.blockEnds[i-1]
             #self.blockEnds[i] = self.blockStarts[i] + self.blockDataLength[i]
         
+	
+	self.blockOffset = []
+	self.blockIndex = []
+	pos = 32 + HBytes
+	for i, block_size in enumerate(self.blockDataLength):
+		self.blockIndex.append(i)
+		self.blockOffset.append(pos)
+		pos += int(block_size)
+
+
         #Total number of vertices (sites)
         k = 0
         for i in self.blockFluidSiteCounts:
@@ -236,15 +246,14 @@ class Domain:
            
             for i in xrange(0,26):
                 fluidType = fl.unpack_uint()
-                
+
                 #calculate coordinates of Moore Neighbourhood vertex
                 edgeCor = [xcor + mooreRegionCor[i][0], ycor + mooreRegionCor[i][1], zcor + mooreRegionCor[i][2]]
                 
                 
                 if (fluidType == 0): #either another vertex or OUT OF BOUNDS
                     mainV.biEdges.append(self._corToIdx(edgeCor))
-                    continue
-                
+                    continue              	            
                 
                 #fluid point (not a vertex) 
                 elif (fluidType == 1):
@@ -267,7 +276,6 @@ class Domain:
                     x = fl.unpack_float()
                 
                 
-                
                 #append edge with type (Moore, point to a point not a vertex)
                 mainV.edges.append(self._corToIdx(edgeCor))
                 mainV.edgetypes.append(fluidType)
@@ -283,7 +291,7 @@ class Domain:
             if len(mainV.edgetypes) == 0:
                 mainV.siteType = 0
             else:
-                siteTypeList = set(mainV.edgetypes)
+                siteTypeList = list(set(mainV.edgetypes))
                 if (siteTypeList == [1]):
                     mainV.siteType = 1
                 elif (siteTypeList == [2]):

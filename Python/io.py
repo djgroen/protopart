@@ -4,7 +4,7 @@ import os
 import numpy as np
 import struct  
 import xdrlib
-    
+import math    
 def ReadDomain(rfile):
     """
     Takes as input string containing input file path, determines
@@ -52,8 +52,14 @@ def writeHGA(d, path):
     """
     print "Writing HGA file at: ", path
     f = open(path,'w')
+
+    s = str(len(d.vertices)) + "\n"
+
     for i in d.vertices:
-        s = str(i.coreNum) + ' ' + str(i.coordinates[0]) + ' '
+        s += str(d.dictIdx[i.vertexID]) + ' ' + str(len(i.biEdges)) + "\n"
+
+    for i in d.vertices:
+        s += str(d.dictIdx[i.vertexID]) + ' ' + str(i.coreNum) + ' ' + str(i.coordinates[0]) + ' '
         s += str(i.coordinates[1]) + ' ' + str(i.coordinates[2]) + ' '
         s += str(i.siteType) + ' '
         
@@ -62,7 +68,153 @@ def writeHGA(d, path):
             if (x == -1): continue
             s += str(d.dictIdx[j]) + ' '
         s += '\n'
-        f.write(s)
+
+    f.write(s)
+
+
+def writeHGAX35_987(d, path):
+    
+    # X35_987 is the XDR version of the output
+
+    """
+    Writes a file for c++ to parse in binary format, provided a path
+    Core ID - Coordinates - SiteTypeNum - Edges - -1
+    """
+    f = open(path,'w')
+    entries = []
+
+    # 1. Total site aocunt
+    # struct.pack('i',totalSites)
+    print "Site count = ", len(d.vertices)
+
+    blockcoord = [0.0,0.0,0.0]
+
+    # 3. Vertex data 
+    for i in d.vertices:
+
+# Read halo- blocks on domain edges
+      if (i.coordinates[0]%d.numLatticeSites == 0): #Lower x-edge
+        xRange = [-1,0]
+      elif (i.coordinates[0]%d.numLatticeSites == 7): #Upper x-edge
+        xRange = [0,1]
+      else:
+        xRange = [0]
+
+      if (i.coordinates[1]%d.numLatticeSites == 0): #Lower x-edge
+        yRange = [-1,0]
+      elif (i.coordinates[1]%d.numLatticeSites == 7): #Upper x-edge
+        yRange = [0,1]
+      else:
+        yRange = [0]
+
+      if (i.coordinates[2]%d.numLatticeSites == 0): #Lower x-edge
+        zRange = [-1,0]
+      elif (i.coordinates[2]%d.numLatticeSites == 7): #Upper x-edge
+        zRange = [0,1]
+      else:
+        zRange = [0]
+
+
+      for dx in xRange:
+        for dy in yRange:
+          for dz in zRange:
+            blockcoord[0] = math.floor((i.coordinates[0]+dx)/d.numLatticeSites)
+            blockcoord[1] = math.floor((i.coordinates[1]+dy)/d.numLatticeSites)
+            blockcoord[2] = math.floor((i.coordinates[2]+dz)/d.numLatticeSites)
+            blockid=int((blockcoord[0]*d.blockSize[1]+blockcoord[1])*d.blockSize[2]+blockcoord[2])
+
+            key = (i.coreNum,blockid)
+            if key not in entries:
+                entries.append(key)
+
+    for i in d.vertices:
+      blockcoord[0] = math.floor((i.coordinates[0])/d.numLatticeSites)
+      blockcoord[1] = math.floor((i.coordinates[1])/d.numLatticeSites)
+      blockcoord[2] = math.floor((i.coordinates[2])/d.numLatticeSites)
+      blockID=int((blockcoord[0]*d.blockSize[1]+blockcoord[1])*d.blockSize[2]+blockcoord[2])
+
+      siteID=int((i.coordinates[0]%d.numLatticeSites)*d.numLatticeSites+(i.coordinates[1]%d.numLatticeSites))*d.numLatticeSites+(i.coordinates[2]%d.numLatticeSites)
+      cpus = []
+
+      for key in entries:
+        core = key[0]
+        block = key[1]
+        if (block==blockID):
+          cpus.append(core)
+
+      print d.dictIdx[i.vertexID],i.coreNum,i.coordinates[0],i.coordinates[1],i.coordinates[2],i.siteType,len(i.biEdges)
+ 
+      for j in i.biEdges:
+          x = d.dictIdx.get(j,-1)
+          if (x == -1): continue
+          print d.dictIdx[j]
+  
+      print blockID,d.blockFluidSiteCounts[blockID],siteID,len(cpus)
+
+      for j in cpus:
+        print j
+
+      s=str(i.coordinates[0]) + ' ' + str(i.coordinates[1]) + ' ' + str(i.coordinates[2]) + ' ' + str(i.siteType) + ' ' + str(i.coreNum) + ' ' + str(blockID) + ' '
+
+      for j in cpus:
+        s+= str(j) + ' '
+
+      s+="\n"
+
+      f.write(s)
+
+
+def writeHGAplus4000(d, path):
+    """
+    Writes a file for c++ to parse in ASCII format, provided a path
+    Core ID - Coordinates - SiteTypeNum - Edges - \n
+    """
+    entries = []
+    print "Writing HGA file at: ", path
+    f = open(path,'w')
+    blockcoord = [0.0,0.0,0.0]
+    for i in d.vertices:
+    # Include neighbouring blocks when on domain edges
+      if (i.coordinates[0]%d.numLatticeSites == 0): #Lower x-edge
+        xRange = [-1,0]
+      elif (i.coordinates[0]%d.numLatticeSites == 7): #Upper x-edge
+        xRange = [0,1]
+      else:
+        xRange = [0]
+
+      if (i.coordinates[1]%d.numLatticeSites == 0): #Lower x-edge
+        yRange = [-1,0]
+      elif (i.coordinates[1]%d.numLatticeSites == 7): #Upper x-edge
+        yRange = [0,1]
+      else:
+        yRange = [0]
+
+      if (i.coordinates[2]%d.numLatticeSites == 0): #Lower x-edge
+        zRange = [-1,0]
+      elif (i.coordinates[2]%d.numLatticeSites == 7): #Upper x-edge
+        zRange = [0,1]
+      else:
+        zRange = [0]
+      
+      for dx in xRange:
+        for dy in yRange:
+          for dz in zRange:
+            blockcoord[0] = math.floor((i.coordinates[0]+dx)/d.numLatticeSites)
+	    blockcoord[1] = math.floor((i.coordinates[1]+dy)/d.numLatticeSites)
+            blockcoord[2] = math.floor((i.coordinates[2]+dz)/d.numLatticeSites)
+	    # Recalculate the blockcoords
+	    blockid=int((blockcoord[0]*d.blockSize[1]+blockcoord[1])*d.blockSize[2]+blockcoord[2])
+
+	    key = (i.coreNum,blockid)
+            if key not in entries:
+		entries.append(key)
+	       
+                s = str(i.coreNum) + ' ' + str(blockid) + ' ' + str(d.blockOffset[blockid]) + ' ' + str(d.blockDataLength[blockid]) + ' ' + str(d.blockUncompressedDataLength[blockid]) + ' ' + str(d.blockFluidSiteCounts[blockid])
+
+                s += '\n'
+                f.write(s)
+
+
 
 def readHGA(path):
     """
@@ -173,6 +325,156 @@ def writeForCBin(d, path):
         # print "writing: ", d.dictIdx[i.vertexID], i.coreNum, i.coordinates, i.siteType, b
 
 
+def writeForCBinX35_987(d, path):
+    
+    # X35_987 is the XDR version of the output
+
+    """
+    Writes a file for c++ to parse in binary format, provided a path
+    Core ID - Coordinates - SiteTypeNum - Edges - -1
+    """
+    f = open(path,'wb')
+    entries = []
+
+    p = xdrlib.Packer()
+
+    # 1. Total site aocunt
+    # struct.pack('i',totalSites)
+    p.pack_uint(len(d.vertices))
+    print "Site count = ", len(d.vertices)
+
+    blockcoord = [0.0,0.0,0.0]
+
+    # 3. Vertex data 
+    for i in d.vertices:
+
+# Read halo- blocks on domain edges
+      if (i.coordinates[0]%d.numLatticeSites == 0): #Lower x-edge
+        xRange = [-1,0]
+      elif (i.coordinates[0]%d.numLatticeSites == 7): #Upper x-edge
+        xRange = [0,1]
+      else:
+        xRange = [0]
+
+      if (i.coordinates[1]%d.numLatticeSites == 0): #Lower x-edge
+        yRange = [-1,0]
+      elif (i.coordinates[1]%d.numLatticeSites == 7): #Upper x-edge
+        yRange = [0,1]
+      else:
+        yRange = [0]
+
+      if (i.coordinates[2]%d.numLatticeSites == 0): #Lower x-edge
+        zRange = [-1,0]
+      elif (i.coordinates[2]%d.numLatticeSites == 7): #Upper x-edge
+        zRange = [0,1]
+      else:
+        zRange = [0]
+
+
+      for dx in xRange:
+        for dy in yRange:
+          for dz in zRange:
+            blockcoord[0] = math.floor((i.coordinates[0]+dx)/d.numLatticeSites)
+            blockcoord[1] = math.floor((i.coordinates[1]+dy)/d.numLatticeSites)
+            blockcoord[2] = math.floor((i.coordinates[2]+dz)/d.numLatticeSites)
+            blockid=int((blockcoord[0]*d.blockSize[1]+blockcoord[1])*d.blockSize[2]+blockcoord[2])
+
+            key = (i.coreNum,blockid)
+            if key not in entries:
+                entries.append(key)
+
+    for i in d.vertices:
+      blockcoord[0] = math.floor((i.coordinates[0])/d.numLatticeSites)
+      blockcoord[1] = math.floor((i.coordinates[1])/d.numLatticeSites)
+      blockcoord[2] = math.floor((i.coordinates[2])/d.numLatticeSites)
+      blockID=int((blockcoord[0]*d.blockSize[1]+blockcoord[1])*d.blockSize[2]+blockcoord[2])
+
+      siteID=int((i.coordinates[0]%d.numLatticeSites)*d.numLatticeSites+(i.coordinates[1]%d.numLatticeSites))*d.numLatticeSites+(i.coordinates[2]%d.numLatticeSites)
+      cpus = []
+
+      for key in entries:
+        core = key[0]
+        block = key[1]
+        if (block==blockID):
+          cpus.append(core)
+
+      p.pack_uint(d.dictIdx[i.vertexID])
+      p.pack_uint(i.coreNum)
+      p.pack_uint(i.coordinates[0])
+      p.pack_uint(i.coordinates[1])
+      p.pack_uint(i.coordinates[2])
+      p.pack_uint(i.siteType)
+      p.pack_uint(len(i.biEdges))
+ 
+      for j in i.biEdges:
+          x = d.dictIdx.get(j,-1)
+          if (x == -1): continue
+          p.pack_uint(d.dictIdx[j])
+  
+      p.pack_uint(blockID) 
+      p.pack_uint(d.blockFluidSiteCounts[blockID])
+      p.pack_uint(siteID)
+   
+      p.pack_uint(len(cpus))
+
+      for j in cpus:
+        p.pack_uint(j)
+
+    f.write(p.get_buffer())       
+
+def writeForCBinPlus4000(d, path):
+    entries = []
+    f = open(path,'wb')
+    blockcoord = [0.0,0.0,0.0]
+
+    p = xdrlib.Packer()
+
+    for i in d.vertices:
+      # Read halo- blocks on domain edges
+      if (i.coordinates[0]%d.numLatticeSites == 0): #Lower x-edge
+        xRange = [-1,0]
+      elif (i.coordinates[0]%d.numLatticeSites == 7): #Upper x-edge
+        xRange = [0,1]
+      else:
+        xRange = [0]
+
+      if (i.coordinates[1]%d.numLatticeSites == 0): #Lower x-edge
+        yRange = [-1,0]
+      elif (i.coordinates[1]%d.numLatticeSites == 7): #Upper x-edge
+        yRange = [0,1]
+      else:
+        yRange = [0]
+
+      if (i.coordinates[2]%d.numLatticeSites == 0): #Lower x-edge
+        zRange = [-1,0]
+      elif (i.coordinates[2]%d.numLatticeSites == 7): #Upper x-edge
+        zRange = [0,1]
+      else:
+        zRange = [0]
+
+
+      for dx in xRange:
+        for dy in yRange:
+          for dz in zRange:
+            blockcoord[0] = math.floor((i.coordinates[0]+dx)/d.numLatticeSites)
+            blockcoord[1] = math.floor((i.coordinates[1]+dy)/d.numLatticeSites)
+            blockcoord[2] = math.floor((i.coordinates[2]+dz)/d.numLatticeSites)
+            blockid=int((blockcoord[0]*d.blockSize[1]+blockcoord[1])*d.blockSize[2]+blockcoord[2])
+
+            key = (i.coreNum,blockid)
+            if key not in entries:
+                entries.append(key)
+	        print [i.coreNum,blockid,d.blockOffset[blockid],d.blockDataLength[blockid],d.blockUncompressedDataLength[blockid]]
+                p.pack_uint(i.coreNum)
+	        p.pack_uint(blockid)
+		p.pack_uint(d.blockOffset[blockid])
+		p.pack_uint(d.blockDataLength[blockid])
+		p.pack_uint(d.blockUncompressedDataLength[blockid])
+	  	p.pack_uint(d.blockFluidSiteCounts[blockid])
+     
+    f.write(p.get_buffer())
+
+
 def readForCBin(path):
     """
     Read a file from the binary format, provided a path
@@ -191,7 +493,7 @@ def readForCBin(path):
     x = f.read(size_int)
     len_vertices = struct.unpack('i',x)[0]
     #print "Site count = ", len_vertices
-     
+    d.numLatticeSites = 8 
 
     len_biEdges = []
     # 2. neighbour counts for each Vertex
@@ -236,7 +538,8 @@ def readForCBin(path):
             #TODO: check!
             i.biEdges.append(struct.unpack('i',f.read(size_int))[0])
             # x = struct.pack('i',v.dictIdx[j])
-        # print "read: ", i.vertexID, i.coreNum, i.coordinates, i.siteType, i.biEdges
+    
+        print "read: ", i.vertexID, i.coreNum, i.coordinates, i.siteType
         vertex_iter += 1
 
     d.updateProperties()

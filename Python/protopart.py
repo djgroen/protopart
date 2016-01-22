@@ -36,10 +36,15 @@ def mainall(W,x):
     if (W['outputc'] != ''):
         io.writeHGA(v, W['outputc'])
     
+    if (W['outputd'] != ''):
+        io.writeForCBinX35_987(v, W['outputd'])
+ 
+    if (W['outputr'] != ''):
+        io.writeForCBinPlus4000(v, W['outputr'])   
+   
     if (W['outputb'] != ''):
         io.writeForCBin(v, W['outputb'])
-    
-    
+ 
 def mainone(W,x):
     
     v = io.ReadDomain(W['input'])
@@ -61,11 +66,17 @@ def mainone(W,x):
         v.writeStats(wout)
 
     if (W['outputc'] != ''):
-        io.writeHGA(v, W['outputc'])
+        io.writeHGAX35_987(v, W['outputc'])
     
+    if (W['outputd'] != ''):
+        io.writeForCBinX35_987(v, W['outputd'])
+
+    if (W['outputr'] != ''):
+        io.writeForCBinPlus4000(v, W['outputr'])
+	       
     if (W['outputb'] != ''):
         io.writeForCBin(v, W['outputb'])
-        
+
         
 if __name__ == '__main__':
     """
@@ -86,7 +97,7 @@ if __name__ == '__main__':
     if len(cmdargs) == 1:
         exit(0)
     
-    D = {'input': '', 'output':'', 'outputc':'', 'outputb':'','decomp':''}
+    D = {'input': '', 'output':'', 'outputc':'', 'outputb':'', 'outputd':'', 'outputr':'', 'decomp':''}
     
     numPartitions = int(cmdargs[-1])
     
@@ -101,6 +112,10 @@ if __name__ == '__main__':
             D['outputc'] = cmdargs[i+1]
         if (cmdargs[i] == '-b'):
             D['outputb'] = cmdargs[i+1]
+	if (cmdargs[i] == '-d'):
+	    D['outputd'] = cmdargs[i+1]
+	if (cmdargs[i] == '-r'):
+	    D['outputr'] = cmdargs[i+1]
         if (cmdargs[i] == '--all'):
             D['decomp'] = 'all'
         if (cmdargs[i] == '--mode'):

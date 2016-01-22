@@ -12,16 +12,12 @@ import domain
 
 if __name__ == '__main__':
     """
-    example: python analyze_hgb.py <hgb-filename>
+    example: python gmy2bin.py <gmy-filename>
     """
     if len(sys.argv) == 1:
         exit(0)
-    print sys.argv[1]
-
-    d = io.readForCBin(sys.argv[1])
-    print d
-
-    d.disp()
+    
+    d = io.ReadDomain(sys.argv[1])
 
     io.writeHGA(d, "%s.hga" % (sys.argv[1][:-4]))
-    
+ 
