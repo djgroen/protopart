@@ -4,6 +4,43 @@ TotalSites: 64.0
 --------------------------------------------
 --------------------------------------------
 --------------------------------------------
-Number of Partitions: 4
+Number of Partitions: 5
 --------------------------------------------
  Number of Sites
+ Neighbour Count
+ Communication Surface
+ Number of Edges
+ Total Weight
+--------------------------------------------
+Number of Partitions: 5
+--------------------------------------------
+ Number of Sites
+ Neighbour Count
+ Communication Surface
+ Number of Edges
+ Total Weight
+--------------------------------------------
+Number of Partitions: 5
+--------------------------------------------
+ Number of Sites
+ Neighbour Count
+ Communication Surface
+ Number of Edges
+ Total Weight
+--------------------------------------------
+Number of Partitions: 5
+--------------------------------------------
+ Number of Sites
+ Neighbour Count
+ Communication Surface
+ Number of Edges
+ Total Weight
+--------------------------------------------
+Number of Partitions: 5
+--------------------------------------------
+ Number of Sites
+ Neighbour Count
+ Communication Surface
+ Number of Edges
+ Total Weight
+--------------------------------------------
