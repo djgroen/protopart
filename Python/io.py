@@ -241,7 +241,7 @@ def GMY2HGB(gmyfile, hgbfile, corecount, disp=True):
                 # x = struct.pack('i',i.vertexID)
                 x = struct.pack('i',d.dictIdx[i.vertexID])
                 f.write(x)
-                x = struct.pack('i',d.dictIdx[i.vertexID] / d.numGraphs)
+                x = struct.pack('i',int( (float(d.dictIdx[i.vertexID]) / float(len(d.dictIdx)) ) * d.numGraphs))
                 f.write(x)
                 x = struct.pack('i',i.coordinates[0])
                 f.write(x)
