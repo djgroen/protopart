@@ -5,6 +5,72 @@ import numpy as np
 import struct  
 import xdrlib
 import math    
+
+def GMY2HGB(gmyfile, hgbfile):
+    v = domain.Domain()
+    
+    #Check if file exists
+    if (not os.path.isfile(rfile)):     
+        print 'Error! Input file not found!'
+        return
+        
+    
+    #Determine File Format Type
+    formatType = 0; 
+   
+    v.gmy(rfile, readData=False) #Read in header information from the GMY, but ignore the data fields.
+    
+    #return v
+
+    f = open(path,'wb')
+
+    # 1. Total site aocunt
+    # x = struct.pack('i',totalSites)
+    x = struct.pack('i',len(d.vertices))
+    print "Site count = ", len(d.vertices)
+    f.write(x)    
+
+    # 2. neighbour counts for each Vertex
+    for i in d.vertices:
+        # x = struct.pack('i',i.vertexID)
+        # print i.vertexID, d.dictIdx[i.vertexID]
+        x = struct.pack('i',d.dictIdx[i.vertexID])
+ 
+        f.write(x)
+        x = struct.pack('i',len(i.biEdges))
+        f.write(x)
+        # print "writing: ", d.dictIdx[i.vertexID], len(i.biEdges)
+
+ 
+    # 3. Vertex data 
+    for i in d.vertices:
+#        x = struct.pack('i',i.vertexID)
+        x = struct.pack('i',d.dictIdx[i.vertexID])
+        f.write(x)
+        x = struct.pack('i',i.coreNum)
+        f.write(x)
+        x = struct.pack('i',i.coordinates[0])
+        f.write(x)
+        x = struct.pack('i',i.coordinates[1])
+        f.write(x)
+        x = struct.pack('i',i.coordinates[2])
+        f.write(x)
+        x = struct.pack('i',i.siteType)
+        f.write(x)
+        
+        for j in i.biEdges:
+            x = d.dictIdx.get(j,-1)
+            if (x == -1): continue
+            x = struct.pack('i',d.dictIdx[j])
+            f.write(x)
+        
+        b = []
+        for j in i.biEdges:
+            b.append(d.dictIdx.get(j,-1))    
+        # print "writing: ", d.dictIdx[i.vertexID], i.coreNum, i.coordinates, i.siteType, b
+
+
+
 def ReadDomain(rfile):
     """
     Takes as input string containing input file path, determines

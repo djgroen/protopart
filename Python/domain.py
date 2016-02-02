@@ -66,7 +66,7 @@ class Domain:
         self.totalWeight = []        #Total Weight according to site Type (Gmy)
         self.dictIdx = {}                #Map vertexID to its index in the vertices list
             
-    def gmy(self,s):
+    def gmy(self,s,readData=True):
         """
         Parse GMY file format
         """
@@ -86,7 +86,8 @@ class Domain:
         if(not self.valid): return
         self.valid = self._blockHeaders()
         if(not self.valid): return
-        self._blockData()
+        if(readData):
+          self._blockData()
         
             
     def _preamble(self):
