@@ -5,12 +5,137 @@ import numpy as np
 import struct  
 import xdrlib
 import math    
+import zlib
+import xdrlib
 
-def GMY2HGB(gmyfile, hgbfile):
-    v = domain.Domain()
+def extractPropertiesFromFluid(d,fl,mode="neighbour"):
+    """
+    if a site is fluid, get its edges and add this vertex to list of vertices
+    Mode = neighbour: add and return only neighbour info
+    Mode = neighbour: add and return only d info
+    """
+    
+    headers = [[],[],[]] #create a list of headers for "neighbour" mode. This will contain [[vertexID],[dictIdx],[biEdges]]
+    vertices = [] #create a list of vertices for "self" mode.
+    
+    corSite = [0,0,-1] #coordinate within block
+    
+    TotLatticeSiteCount = d.numLatticeSites**3
+    for i in xrange(0, TotLatticeSiteCount):
+
+        d._updCor(corSite, [d.numLatticeSites for k in [0,1,2]]) #increment position within block
+        mainType = fl.unpack_uint() 
+        if (mainType == 0): #solid, so irrelevant
+            continue
+        
+        #liquid site    
+        
+        #create Vertex and fill information
+        mainV = domain.VertexGmy()
+        
+        xcor = d.corBlock[0] * d.numLatticeSites + corSite[0]
+        ycor = d.corBlock[1] * d.numLatticeSites + corSite[1]
+        zcor = d.corBlock[2] * d.numLatticeSites + corSite[2]
+        mainV.coordinates = [xcor,ycor,zcor]
+        mainV.vertexID = d._corToIdx(mainV.coordinates)
+        mainV.coreNum = mainV.vertexID / d.numGraphs # numGraphs is the number of cores planned.
+        #Error checking
+        if d.dictIdx.get(mainV.vertexID, -1) != -1:
+            #print mainV.vertexID, mainV.coordinates
+            x = d.dictIdx[mainV.vertexID]
+            #print d.vertices[x].vertexID, d.vertices[x].coordinates
+        
+        if mode == "neighbour":
+            headers[0].append(mainV.vertexID)
+            headers[1].append(len(d.vertices))
+            headers[2].append([])
+        elif mode == "self":
+            d.dictIdx[mainV.vertexID] = len(d.vertices)
+            
+        for i in xrange(0,26):
+            fluidType = fl.unpack_uint()
+
+            #calculate coordinates of Moore Neighbourhood vertex
+            edgeCor = [xcor + domain.mooreRegionCor[i][0], ycor + domain.mooreRegionCor[i][1], zcor + domain.mooreRegionCor[i][2]]
+            
+            
+            if (fluidType == 0): #either another vertex or OUT OF BOUNDS
+                if mode == "neighbour":
+                    headers[2][-1].append(d._corToIdx(edgeCor))
+                    mainV.biEdges.append(d._corToIdx(edgeCor))
+                    continue                            
+            
+            #fluid point (not a vertex) 
+            elif (fluidType == 1):
+                #v = VertexWall()
+                #v.distToBoundaryAsFrac
+                x = fl.unpack_float()
+                
+            elif (fluidType == 2):
+                #v = VertexInlet()
+                #v.indexToInletArray
+                x = fl.unpack_uint()
+                #v.distToBoundaryAsFrac 
+                x = fl.unpack_float()
+                
+            elif (fluidType == 3):
+                #v = VertexOutlet()
+                #v.indexToOutletArray 
+                x = fl.unpack_uint()
+                #v.distToBoundaryAsFrac 
+                x = fl.unpack_float()
+            
+            
+            #append edge with type (Moore, point to a point not a vertex)
+            mainV.edges.append(d._corToIdx(edgeCor))
+            mainV.edgetypes.append(fluidType)
+
+        #Wall Normal        
+        isWallNormal = fl.unpack_uint()
+        if (isWallNormal == 1):
+            #mainV.wallNormal
+            x = [fl.unpack_float(),fl.unpack_float(),fl.unpack_float()] 
+        
+        
+        #Determin Site Type
+        if len(mainV.edgetypes) == 0:
+            mainV.siteType = 0
+        else:
+            siteTypeList = list(set(mainV.edgetypes))
+            if (siteTypeList == [1]):
+                mainV.siteType = 1
+            elif (siteTypeList == [2]):
+                mainV.siteType = 2
+            elif (siteTypeList == [3]):
+                mainV.siteType = 3
+            elif (siteTypeList == [1,2] or siteTypeList == [2,1]):
+                mainV.siteType = 4
+            elif (siteTypeList == [1,3] or siteTypeList == [3,1]) :
+                mainV.siteType = 5
+            else:
+                d.siteType = 6 
+        
+        #add Vertex to Vessel     
+        vertices.append(mainV)
+        
+        
+    if mode == "self":
+        return vertices
+    if mode == "neighbour":
+        return headers
+
+
+
+
+def GMY2HGB(gmyfile, hgbfile, corecount):
+
+    f = open(hgbfile,'wb') #open output HGB File
+
+    ### READING PASS 1 (header)
+    d = domain.Domain()
     
     #Check if file exists
-    if (not os.path.isfile(rfile)):     
+    if (not os.path.isfile(gmyfile)):     
         print 'Error! Input file not found!'
         return
         
@@ -18,56 +143,113 @@ def GMY2HGB(gmyfile, hgbfile):
     #Determine File Format Type
     formatType = 0; 
    
-    v.gmy(rfile, readData=False) #Read in header information from the GMY, but ignore the data fields.
-    
-    #return v
+    d.gmy(gmyfile, readData=False) #Read in header information from the GMY, but ignore the data fields.
+   
 
-    f = open(path,'wb')
-
+    ### WRITING PART
     # 1. Total site aocunt
-    # x = struct.pack('i',totalSites)
-    x = struct.pack('i',len(d.vertices))
-    print "Site count = ", len(d.vertices)
+    x = struct.pack('i',np.sum(d.blockFluidSiteCounts))
+    print "Site count = ", np.sum(d.blockFluidSiteCounts)
     f.write(x)    
+    
+    
+    ### READING PASS 1 (fluid sites)
+    d.dictIdx = {}    #map indices of vertices
 
-    # 2. neighbour counts for each Vertex
-    for i in d.vertices:
-        # x = struct.pack('i',i.vertexID)
-        # print i.vertexID, d.dictIdx[i.vertexID]
-        x = struct.pack('i',d.dictIdx[i.vertexID])
- 
-        f.write(x)
-        x = struct.pack('i',len(i.biEdges))
-        f.write(x)
-        # print "writing: ", d.dictIdx[i.vertexID], len(i.biEdges)
+    neighbour_data = []
+    
+    for i in xrange(0, d.nBlocks):
 
+        """
+        if ((i+1)%80000 == 0):
+            print 'Resting for 30sec'
+            time.sleep(30)
+        """
+
+        d.updCor() #update coordinate of block we are in
+
+        if i%1000 == 0:
+            print str(i) + '/' + str(d.nBlocks)         #prints block we are reading
+
+        if (d.blockFluidSiteCounts[i] == 0):        #no data
+            continue
+        else:
+            #decompress, unpack, and handel data
+            compressed = d.gmyFile.read(d.blockDataLength[i])
+            uncompressed = zlib.decompress(compressed)
+            bl = xdrlib.Unpacker(uncompressed)
+            neighbour_data = extractPropertiesFromFluid(d,bl,mode="neighbour")
+
+            # WRITING (neighbour information)
+            # 2. neighbour counts for each Vertex
+            for i in xrange(0,len(neighbour_data[0])):
+                # x = struct.pack('i',i.vertexID)
+                # print i.vertexID, d.dictIdx[i.vertexID]
+                x = struct.pack('i',neighbour_data[1][i])
+                f.write(x)
+                
+                x = struct.pack('i',len(neighbour_data[2][i]))
+                f.write(x)
+                # print "writing: ", d.dictIdx[i.vertexID], len(i.biEdges)
+
+                
+    ### READING PASS 2 (Ignore the headers)
+    d = domain.Domain()
+   
+    d.gmy(gmyfile, readData=False) #Read in header information from the GMY, but ignore the data fields.
+    d.setNumGraphs(corecount)   
  
-    # 3. Vertex data 
-    for i in d.vertices:
-#        x = struct.pack('i',i.vertexID)
-        x = struct.pack('i',d.dictIdx[i.vertexID])
-        f.write(x)
-        x = struct.pack('i',i.coreNum)
-        f.write(x)
-        x = struct.pack('i',i.coordinates[0])
-        f.write(x)
-        x = struct.pack('i',i.coordinates[1])
-        f.write(x)
-        x = struct.pack('i',i.coordinates[2])
-        f.write(x)
-        x = struct.pack('i',i.siteType)
-        f.write(x)
+    ### READING PASS 2 (fluid sites)
+    vertices = []
+    
+    for i in xrange(0, d.nBlocks):
+
+        """
+        if ((i+1)%80000 == 0):
+            print 'Resting for 30sec'
+            time.sleep(30)
+        """
+
+        d.updCor() #update coordinate of block we are in
+
+        if i%1000 == 0:
+            print str(i) + '/' + str(d.nBlocks)         #prints block we are reading
+
+        if (d.blockFluidSiteCounts[i] == 0):        #no data
+            continue
+        else:
+            #decompress, unpack, and handel data
+            compressed = d.gmyFile.read(d.blockDataLength[i])
+            uncompressed = zlib.decompress(compressed)
+            bl = xdrlib.Unpacker(uncompressed)
+            vertices = extractPropertiesFromFluid(d,bl,mode="self")
+ 
+            # WRITING: Vertex data 
+            for i in vertices:
+                # x = struct.pack('i',i.vertexID)
+                x = struct.pack('i',d.dictIdx[i.vertexID])
+                f.write(x)
+                x = struct.pack('i',d.dictIdx[i.vertexID] / d.numGraphs)
+                f.write(x)
+                x = struct.pack('i',i.coordinates[0])
+                f.write(x)
+                x = struct.pack('i',i.coordinates[1])
+                f.write(x)
+                x = struct.pack('i',i.coordinates[2])
+                f.write(x)
+                x = struct.pack('i',i.siteType)
+                f.write(x)
         
-        for j in i.biEdges:
-            x = d.dictIdx.get(j,-1)
-            if (x == -1): continue
-            x = struct.pack('i',d.dictIdx[j])
-            f.write(x)
+                for j in i.biEdges:
+                    x = d.dictIdx.get(j,-1)
+                    if (x == -1): continue
+                    x = struct.pack('i',d.dictIdx[j])
+                    f.write(x)
         
-        b = []
-        for j in i.biEdges:
-            b.append(d.dictIdx.get(j,-1))    
-        # print "writing: ", d.dictIdx[i.vertexID], i.coreNum, i.coordinates, i.siteType, b
+                b = []
+                for j in i.biEdges:
+                    b.append(d.dictIdx.get(j,-1))    
+                # print "writing: ", d.dictIdx[i.vertexID], i.coreNum, i.coordinates, i.siteType, b
 
 
 
@@ -392,9 +574,9 @@ def writeForCBin(d, path):
 
 
 def populateBlockList(v, d):
-"""
-Creates a mapping list from blocknumber to corenumber.
-"""
+    """
+    Creates a mapping list from blocknumber to corenumber.
+    """
     entries = []
 
     #read halo- blocks on domain edges

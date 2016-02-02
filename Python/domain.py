@@ -198,7 +198,7 @@ class Domain:
                 time.sleep(30)
             """ 
             
-            self._updCor(self.corBlock,self.blockSize) #update coordinate of block we are in
+            self.updCor() #update coordinate of block we are in
             
             if i%1000 == 0:
                 print str(i) + '/' + str(self.nBlocks)         #prints block we are reading
@@ -323,6 +323,9 @@ class Domain:
             cor[0] += 1
             cor[1] = 0
         return cor
+        
+    def updCor(self):
+        return self._updCor(self.corBlock,self.blockSize)
         
     def _corToIdx(self,L):
         """

@@ -16,10 +16,18 @@ if __name__ == '__main__':
     """
     if len(sys.argv) == 1:
         exit(0)
-    
-    d = io.ReadDomain(sys.argv[1])
-
-    d.disp()
-
-    io.writeForCBin(d, "%s.hgb" % (sys.argv[1][:-4]))
+   
+    mode = "new"
+    if len(sys.argv) > 2:
+        mode = sys.argv[2]
  
+    if mode == "old":
+        d = io.ReadDomain(sys.argv[1])
+
+        d.disp()
+
+        io.writeForCBin(d, "%s.hgb" % (sys.argv[1][:-4]))
+    else:
+        io.GMY2HGB(sys.argv[1], "%s.hgb" % (sys.argv[1][:-4]), 32)
+
+     
