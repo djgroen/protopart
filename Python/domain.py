@@ -383,6 +383,7 @@ class Domain:
             print 'vertex id: ' + str(i.vertexID)
             print 'core number: ' + str(i.coreNum)
             if (isinstance(i,VertexGmy)):
+                print 'site type: ' + str(i.siteType), i.edgetypes
                 print 'edges: ' + ' '.join(str(j) for j in i.biEdges)
             else:
                 print 'edges: ' + ' '.join(str(j) for j in i.edges) 

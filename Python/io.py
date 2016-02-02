@@ -20,6 +20,8 @@ def extractPropertiesFromFluid(d,fl,mode="neighbour"):
     
     corSite = [0,0,-1] #coordinate within block
     
+    elements_passed = 0
+
     TotLatticeSiteCount = d.numLatticeSites**3
     for i in xrange(0, TotLatticeSiteCount):
 
@@ -47,10 +49,12 @@ def extractPropertiesFromFluid(d,fl,mode="neighbour"):
         
         if mode == "neighbour":
             headers[0].append(mainV.vertexID)
-            headers[1].append(len(d.vertices))
+            headers[1].append(elements_passed)
             headers[2].append([])
-        elif mode == "self":
-            d.dictIdx[mainV.vertexID] = len(d.vertices)
+        
+        #elif mode == "self":
+        d.dictIdx[mainV.vertexID] = elements_passed
+        elements_passed += 1
             
         for i in xrange(0,26):
             fluidType = fl.unpack_uint()
@@ -60,10 +64,10 @@ def extractPropertiesFromFluid(d,fl,mode="neighbour"):
             
             
             if (fluidType == 0): #either another vertex or OUT OF BOUNDS
+                mainV.biEdges.append(d._corToIdx(edgeCor))
                 if mode == "neighbour":
                     headers[2][-1].append(d._corToIdx(edgeCor))
-                    mainV.biEdges.append(d._corToIdx(edgeCor))
-                    continue                            
+                continue                            
             
             #fluid point (not a vertex) 
             elif (fluidType == 1):
@@ -113,7 +117,7 @@ def extractPropertiesFromFluid(d,fl,mode="neighbour"):
             elif (siteTypeList == [1,3] or siteTypeList == [3,1]) :
                 mainV.siteType = 5
             else:
-                d.siteType = 6 
+                mainV.siteType = -1 
         
         #add Vertex to Vessel     
         vertices.append(mainV)
@@ -127,7 +131,7 @@ def extractPropertiesFromFluid(d,fl,mode="neighbour"):
 
 
 
-def GMY2HGB(gmyfile, hgbfile, corecount):
+def GMY2HGB(gmyfile, hgbfile, corecount, disp=True):
 
     f = open(hgbfile,'wb') #open output HGB File
 
@@ -226,6 +230,14 @@ def GMY2HGB(gmyfile, hgbfile, corecount):
  
             # WRITING: Vertex data 
             for i in vertices:
+                print 'vertex id: ' + str(d.dictIdx[i.vertexID])
+                print 'core number: ' + str(i.coreNum)
+                print 'site type: ' + str(i.siteType), i.edgetypes
+                print 'edges: ' + ' '.join(str(j) for j in i.biEdges)
+                print 'coordinates: ' + str(i.coordinates)
+                print '-------------------------------------------'
+
+
                 # x = struct.pack('i',i.vertexID)
                 x = struct.pack('i',d.dictIdx[i.vertexID])
                 f.write(x)
