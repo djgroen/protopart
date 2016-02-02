@@ -52,7 +52,7 @@ def extractPropertiesFromFluid(d,fl,mode="neighbour"):
             headers[1].append(elements_passed)
             headers[2].append([])
         
-        #elif mode == "self":
+        ### dictIdx STILL GROWS with NumSites.
         d.dictIdx[mainV.vertexID] = elements_passed
         elements_passed += 1
             
