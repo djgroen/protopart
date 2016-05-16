@@ -305,7 +305,7 @@ def ReadDomain(rfile):
     return v
 
 
-def writeHGA(d, path):
+def writeHGA(d, path, weights_only=False):
     """
     Writes a file for c++ to parse in ASCII format, provided a path
     Core ID - Coordinates - SiteTypeNum - Edges - \n
@@ -314,6 +314,17 @@ def writeHGA(d, path):
     f = open(path,'w')
 
     s = str(len(d.vertices)) + "\n"
+
+    if weights_only:
+        s = ""
+        for i in d.vertices:
+            if i.siteType == 2 or i.siteType == 4:
+                s += str(i.coordinates[0]) + ' '
+                s += str(i.coordinates[1]) + ' '
+                s += str(i.coordinates[2]) + ' 0.0\n'
+        f.write(s)
+        return
+
 
     for i in d.vertices:
         s += str(d.dictIdx[i.vertexID]) + ' ' + str(len(i.biEdges)) + "\n"
@@ -331,6 +342,20 @@ def writeHGA(d, path):
 
     f.write(s)
 
+def writeVelWeights(d, path):
+    """
+    Writes a file for c++ to parse in ASCII format, provided a path
+    Coordinates - Weight (set to 0.0) \n
+    """
+    print "Writing HGA file at: ", path
+    f = open(path,'w')
+
+    for i in d.vertices:
+        s = str(i.coordinates[0]) + ' ' + str(i.coordinates[1]) + ' ' + str(i.coordinates[2]) + ' 0.0'
+        s += str(i.siteType) + ' '
+        s += '\n'
+
+        f.write(s)
 
 def writeHGAX35_987(d, path):
     
